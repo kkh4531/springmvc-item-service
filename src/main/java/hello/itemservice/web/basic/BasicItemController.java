@@ -39,6 +39,16 @@ public class BasicItemController {
         return "basic/item";
     }
 
+    @GetMapping("/add")
+    public String addView() {
+        return "basic/addForm";
+    }
+
+    @PostMapping("/add")
+    public String save() {
+        return null;
+    }
+
     @PostConstruct
     public void init() {
         itemRepository.save(new Item("itemA", 10000, 10));
