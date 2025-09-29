@@ -55,7 +55,7 @@ public class BasicItemController {
     로 지정
     `model.addAttribute("hello", item);` 모델에 `hello` 이름으로 저장
     */
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String saveV1(@ModelAttribute("item") Item item) { // ModelAttribute 파라미터에 이름을 쓰면 이것은 자동으로 model.addAttribute("item", item)으로 담긴다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute 파라미터에 쓰면 자동으로 담김
