@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -69,11 +70,19 @@ public class BasicItemController {
         return "basic/item";
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String saveV3(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
         itemRepository.save(item);
         return "redirect:/basic/items/" + item.getId(); //
+    }
+
+    @PostMapping("/add")
+    public String saveV4(Item item, RedirectAttributes redirectAttributes) { // @ModelAttribute생략 가능
+        Item saved = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", saved.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/basic/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
     @GetMapping("/{itemId}/edit")
@@ -86,7 +95,7 @@ public class BasicItemController {
     @PostMapping("/{itemId}/edit")
     public String editItem(@PathVariable Long itemId, @ModelAttribute Item item) {
         itemRepository.update(itemId, item);
-        return "redirect:/basic/items/" + itemId;
+        return "redirect:/basic/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
     }
 
     @PostMapping
