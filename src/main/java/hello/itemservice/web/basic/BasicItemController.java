@@ -62,13 +62,34 @@ public class BasicItemController {
         return "basic/item";
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String saveV2(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
         return "basic/item";
     }
 
+    @PostMapping("/add")
+    public String saveV3(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
+        //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
+        itemRepository.save(item);
+        return "redirect:/basic/items/" + item.getId(); //
+    }
+
+    @GetMapping("/{itemId}/edit")
+    public String editForm(@PathVariable("itemId") Long itemId, Model model) {
+        Item item = itemRepository.findById(itemId);
+        model.addAttribute("item", item);
+        return "basic/editForm";
+    }
+
+    @PostMapping("/{itemId}/edit")
+    public String editItem(@PathVariable Long itemId, @ModelAttribute Item item) {
+        itemRepository.update(itemId, item);
+        return "redirect:/basic/items/" + itemId;
+    }
+
+    @PostMapping
     @PostConstruct
     public void init() {
         itemRepository.save(new Item("itemA", 10000, 10));
