@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!-- 이 부분이 중요합니다! -->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<ul>
+  <li>상품 관리
+    <ul>
+      <li><a th:href="@{/validation/v1/items}">검증 관리 - v1</a></li>
+      <li><a th:href="@{/validation/v2/items}">검증 관리 - v2</a></li>
+      <li><a th:href="@{/validation/v3/items}">검증 관리 - v3</a></li>
+      <li><a th:href="@{/validation/v4/items}">검증 관리 - v4</a></li>
+    </ul>
+  </li>
+</ul>
+</body>
+</html>

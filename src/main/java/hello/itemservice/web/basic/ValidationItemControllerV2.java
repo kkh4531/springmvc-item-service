@@ -5,7 +5,6 @@ import hello.itemservice.domain.item.ItemRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -18,9 +17,9 @@ import java.util.Map;
 
 @Slf4j
 @Controller
-@RequestMapping("/basic/items")
+@RequestMapping("/validation/v2/items")
 @RequiredArgsConstructor
-public class BasicItemController {
+public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
 
@@ -28,7 +27,7 @@ public class BasicItemController {
     public String items(Model model) {
         List<Item> items = itemRepository.findAll();
         model.addAttribute("items", items);
-        return "basic/items";
+        return "validation/v2/items";
     }
 
     /**
@@ -39,13 +38,13 @@ public class BasicItemController {
     public String item(@PathVariable long itemId, Model model) {
         Item item = itemRepository.findById(itemId);
         model.addAttribute("item", item);
-        return "basic/item";
+        return "validation/v2/item";
     }
 
     @GetMapping("/add")
     public String addView(Model model) {
         model.addAttribute("item", new Item());
-        return "basic/addForm";
+        return "validation/v2/addForm";
     }
 
     /*
@@ -66,21 +65,21 @@ public class BasicItemController {
     public String saveV1(@ModelAttribute("item") Item item) { // ModelAttribute 파라미터에 이름을 쓰면 이것은 자동으로 model.addAttribute("item", item)으로 담긴다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute 파라미터에 쓰면 자동으로 담김
-        return "basic/item";
+        return "validation/v2/item";
     }
 
     //@PostMapping("/add")
     public String saveV2(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
-        return "basic/item";
+        return "validation/v2/item";
     }
 
     //@PostMapping("/add")
     public String saveV3(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
         itemRepository.save(item);
-        return "redirect:/basic/items/" + item.getId(); //
+        return "redirect:/validation/v2/items/" + item.getId(); //
     }
 
     @PostMapping("/add")
@@ -110,27 +109,27 @@ public class BasicItemController {
         if (!errors.isEmpty()) { // 에러에 값이 담겨있으면 검증에 걸린 것
             log.info("errors = {}", errors);
             model.addAttribute("errors", errors);
-            return "basic/addForm"; // 상품 추가 입력 폼
+            return "validation/v2/addForm"; // 상품 추가 입력 폼
         }
 
         //상품 입력 성공
         Item saved = itemRepository.save(item);
         redirectAttributes.addAttribute("itemId", saved.getId());
         redirectAttributes.addAttribute("status", true);
-        return "redirect:/basic/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
+        return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
     @GetMapping("/{itemId}/edit")
     public String editForm(@PathVariable("itemId") Long itemId, Model model) {
         Item item = itemRepository.findById(itemId);
         model.addAttribute("item", item);
-        return "basic/editForm";
+        return "validation/v2/editForm";
     }
 
     @PostMapping("/{itemId}/edit")
     public String editItem(@PathVariable Long itemId, @ModelAttribute Item item) {
         itemRepository.update(itemId, item);
-        return "redirect:/basic/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
+        return "redirect:/validation/v2/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
     }
 
     @PostMapping
