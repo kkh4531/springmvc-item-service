@@ -121,7 +121,7 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String addItemV2(Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
 
         //검증 로직
@@ -146,6 +146,48 @@ public class ValidationItemControllerV2 {
             int resultPrice = item.getPrice() * item.getQuantity();
             if (resultPrice < 10000) {
                 bindingResult.addError(new ObjectError("item", "가격 x 수량의 합은 10000원 이상이어야 합니다.")); // 글로벌오류
+            }
+        }
+
+        //검증에 실패하면 다시 입력 폼으로
+        if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
+            log.info("errors = {}", bindingResult);
+            //model.addAttribute("errors", errors); view 처리에 bindingResult 값이 같이 넘어감. 그래서 html에서 쓸 수 있음.
+            return "validation/v2/addForm"; // 상품 추가 입력 폼
+        }
+
+        //상품 입력 성공
+        Item saved = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", saved.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
+    }
+
+    @PostMapping("/add") // 오류 코드와 메시지 처리1
+    public String addItemV3(Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
+
+        //검증 로직
+        if (!StringUtils.hasText(item.getItemName())) {
+            //bindingResult.addError(new FieldError("item", "itemName", "상품 이름은 필수입니다."));
+            // objectName은 ModelAttribute를 쓴 객체의 변수명, field는 객체의 오류가 발생한 속성이름, defaultMessage는 오류 메시지
+            bindingResult.addError(new FieldError("item", "itemName", item.getItemName(), false, new String[]{"required.item.itemName"}, null, null));
+            //검증에서 실패 시 값을 그대로 다시 보여주기 위함.
+            //FieldError의 생성자는 2개이다. 세 번째 파라미터는 검증이 실패한 필드의 값, 4번째는 ModelAttribute 바인딩이 실패했는지 ex)타입 오류,
+        }
+        if (item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000) {
+            //bindingResult.addError(new FieldError("item", "price", "가격은 1000원에서 1000000까지 허용합니다."));
+            bindingResult.addError(new FieldError("item", "price", item.getPrice(), false, new String[]{"range.item.price"}, new Object[]{1000, 1000000}, null));
+
+        }
+        if (item.getQuantity() == null || item.getQuantity() > 9999) {
+            //bindingResult.addError(new FieldError("item", "quantity", "수량은 최대 9999개까지 허용합니다."));
+            bindingResult.addError(new FieldError("item", "quantity", item.getQuantity(), false, new String[]{"max.item.quantity"}, new Object[]{9999}, "수량은 최대 9999개까지 허용합니다."));
+        }
+        //특정 필드가 아닌 복합 룰 검증
+        if (item.getPrice() != null && item.getQuantity() != null) {
+            int resultPrice = item.getPrice() * item.getQuantity();
+            if (resultPrice < 10000) {
+                bindingResult.addError(new ObjectError("item", new String[]{"totalPriceMin"}, new Object[]{10000, resultPrice}, null)); // 글로벌오류
             }
         }
 
