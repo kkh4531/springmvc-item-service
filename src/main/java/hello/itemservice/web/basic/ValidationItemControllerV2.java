@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -26,6 +28,15 @@ public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
     private final ItemValidator itemValidator;
+
+    @InitBinder
+    public void init(WebDataBinder dataBinder) { // @Validated가 붙은 객체의 검증기가 작동되게 한다.
+        dataBinder.addValidators(itemValidator); // WebDataBinder에 Item 검증기 추가
+        // @ModelAttribute Item item에 @Validated가 붙어 자동으로 itemValidator.validate()가 실행됨.
+        // Item 객체 말고도 다른 객체의 검증기도 추가할 수 있다. ex) dataBinder.addValidators(UserValidator);
+        // 그렇다면 많은 검증기가 등록이 돼있는데 어떤 객체의 검증기인지 어떻게 알고 해당되는 검증기를 작동하느냐?
+        // 검증기 클래스의 implements Validator에서 supports라는 메소드가 해당되는 클래스를 찾고 맞으면 true 후 validate 메소드가 실행됨.
+    }
 
     @GetMapping
     public String items(Model model) {
@@ -241,10 +252,30 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
-    @PostMapping("/add") // 오류 코드와 메시지 처리1
+    //@PostMapping("/add") // 오류 코드와 메시지 처리1
     public String addItemV5(Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
 
         itemValidator.validate(item, bindingResult); // 검증 클래스를 따로 만들어 검증 로직을 컨트롤러 코드에서 처리하지 않게함.
+
+        //검증에 실패하면 다시 입력 폼으로
+        if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
+            log.info("errors = {}", bindingResult);
+            //model.addAttribute("errors", errors); view 처리에 bindingResult 값이 같이 넘어감. 그래서 html에서 쓸 수 있음.
+            return "validation/v2/addForm"; // 상품 추가 입력 폼
+        }
+
+        //상품 입력 성공
+        Item saved = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", saved.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
+    }
+
+    @PostMapping("/add") // 최종 검증 메소드
+    public String addItemV6(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
+
+        //itemValidator.validate(item, bindingResult); // 검증 클래스를 따로 만들어 검증 로직을 컨트롤러 코드에서 처리하지 않게함.
+        // 파라미터 Item item에서 @Validated를 넣으면 itemValidator.validate 메소드를 수행해줌.
 
         //검증에 실패하면 다시 입력 폼으로
         if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
