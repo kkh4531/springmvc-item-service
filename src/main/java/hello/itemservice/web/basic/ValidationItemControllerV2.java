@@ -304,10 +304,10 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
     }
 
-    @PostMapping
-    @PostConstruct
+    //@PostMapping
+    //@PostConstruct
     public void init() {
         itemRepository.save(new Item("itemA", 10000, 10));
-        itemRepository.save(new Item("itemA", 20000, 20));
+        itemRepository.save(new Item("itemB", 20000, 20));
     }
 }

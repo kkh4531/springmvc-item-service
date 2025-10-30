@@ -8,26 +8,30 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Controller
-@RequestMapping("/validation/v1/items")
+@RequestMapping("/validation/v3/items")
 @RequiredArgsConstructor
-public class ValidationItemControllerV1 {
+public class ValidationItemControllerV3 {
 
     private final ItemRepository itemRepository;
+    private final ItemValidator itemValidator;
 
     @GetMapping
     public String items(Model model) {
         List<Item> items = itemRepository.findAll();
         model.addAttribute("items", items);
-        return "validation/v1/items";
+        return "validation/v3/items";
     }
 
     /**
@@ -38,13 +42,13 @@ public class ValidationItemControllerV1 {
     public String item(@PathVariable long itemId, Model model) {
         Item item = itemRepository.findById(itemId);
         model.addAttribute("item", item);
-        return "validation/v1/item";
+        return "validation/v3/item";
     }
 
     @GetMapping("/add")
     public String addView(Model model) {
         model.addAttribute("item", new Item());
-        return "validation/v1/addForm";
+        return "validation/v3/addForm";
     }
 
     /*
@@ -65,77 +69,59 @@ public class ValidationItemControllerV1 {
     public String saveV1(@ModelAttribute("item") Item item) { // ModelAttribute 파라미터에 이름을 쓰면 이것은 자동으로 model.addAttribute("item", item)으로 담긴다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute 파라미터에 쓰면 자동으로 담김
-        return "validation/v1/item";
+        return "validation/v3/item";
     }
 
     //@PostMapping("/add")
     public String saveV2(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         itemRepository.save(item);
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
-        return "validation/v1/item";
+        return "validation/v3/item";
     }
 
     //@PostMapping("/add")
     public String saveV3(@ModelAttribute Item item) { // 사실 파라미터에 item을 생략해도 알아서 model에 Item(클래스명)의 첫글자만 소문자로 바꿔서 저장이 된다.
         //model.addAttribute("item", item); ModelAttribute를 쓰면 알아서 model에 담김.
         itemRepository.save(item);
-        return "redirect:/validation/v1/items/" + item.getId(); //
+        return "redirect:/validation/v3/items/" + item.getId(); //
     }
 
-    @PostMapping("/add")
-    public String saveV4(Item item, RedirectAttributes redirectAttributes, Model model) { // @ModelAttribute생략 가능
+    @PostMapping("/add") // 최종 검증 메소드
+    public String addItem(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
 
-        //검증 오류 결과를 보관
-        Map<String, String> errors = new HashMap<>();
-        //검증 로직
-        if (!StringUtils.hasText(item.getItemName())) {
-            errors.put("itemName", "상품 이름은 필수입니다.");
-        }
-        if (item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000) {
-            errors.put("price", "가격은 1000원에서 1000000까지 허용합니다.");
-        }
-        if (item.getQuantity() == null || item.getQuantity() > 9999) {
-            errors.put("quantity", "수량은 최대 9999개까지 허용합니다.");
-        }
-        //특정 필드가 아닌 복합 룰 검증
-        if (item.getPrice() != null && item.getQuantity() != null) {
-            int resultPrice = item.getPrice() * item.getQuantity();
-            if (resultPrice < 10000) {
-                errors.put("globalError", "가격 x 수량의 합은 10000원 이상이어야 합니다." + resultPrice);
-            }
-        }
-
-        //검증에 실패하면 다시 입력 폼으로
-        if (!errors.isEmpty()) { // 에러에 값이 담겨있으면 검증에 걸린 것
-            log.info("errors = {}", errors);
-            model.addAttribute("errors", errors);
-            return "validation/v1/addForm"; // 상품 추가 입력 폼
+        // Bean Validation을 이용할 때 Item 클래스에서 애노테이션을 이용해 검증을 하는데 이때 검증은 무조건 바인딩이 됐다는 전제 하에 검증한다.
+        // 그 말은 즉, 애초에 타입 에러로 바인딩이 실패될 때는 Bean Validation이 검증을 하지 못한다.
+        // errors.properties에 typeMismatch를 해놓았다면 해당 에러 메시지가 뜰 것이지만 해놓지 않았다면 스프링 내부 디폴트 메시지가 나가게 됨.
+        if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
+            log.info("errors = {}", bindingResult);
+            //model.addAttribute("errors", errors); view 처리에 bindingResult 값이 같이 넘어감. 그래서 html에서 쓸 수 있음.
+            return "validation/v3/addForm"; // 상품 추가 입력 폼
         }
 
         //상품 입력 성공
         Item saved = itemRepository.save(item);
         redirectAttributes.addAttribute("itemId", saved.getId());
         redirectAttributes.addAttribute("status", true);
-        return "redirect:/validation/v1/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
+        return "redirect:/validation/v3/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
     @GetMapping("/{itemId}/edit")
     public String editForm(@PathVariable("itemId") Long itemId, Model model) {
         Item item = itemRepository.findById(itemId);
         model.addAttribute("item", item);
-        return "validation/v1/editForm";
+        return "validation/v3/editForm";
     }
 
     @PostMapping("/{itemId}/edit")
     public String editItem(@PathVariable Long itemId, @ModelAttribute Item item) {
         itemRepository.update(itemId, item);
-        return "redirect:/validation/v1/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
+        return "redirect:/validation/v3/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
     }
 
     //@PostMapping
-    //@PostConstruct
+    @PostConstruct
     public void init() {
         itemRepository.save(new Item("itemA", 10000, 10));
-        itemRepository.save(new Item("itemB", 20000, 20));
+        itemRepository.save(new Item("itemA", 20000, 20));
     }
 }
