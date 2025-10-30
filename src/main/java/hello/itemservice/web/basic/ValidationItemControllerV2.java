@@ -25,6 +25,7 @@ import java.util.Map;
 public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
+    private final ItemValidator itemValidator;
 
     @GetMapping
     public String items(Model model) {
@@ -205,7 +206,7 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
     }
 
-    @PostMapping("/add") // 오류 코드와 메시지 처리1
+    //@PostMapping("/add") // 오류 코드와 메시지 처리1
     public String addItemV4(Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
 
         //검증 로직
@@ -225,6 +226,25 @@ public class ValidationItemControllerV2 {
                 bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
             }
         }
+
+        //검증에 실패하면 다시 입력 폼으로
+        if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
+            log.info("errors = {}", bindingResult);
+            //model.addAttribute("errors", errors); view 처리에 bindingResult 값이 같이 넘어감. 그래서 html에서 쓸 수 있음.
+            return "validation/v2/addForm"; // 상품 추가 입력 폼
+        }
+
+        //상품 입력 성공
+        Item saved = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", saved.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}"; // RedirectAttribute를 쓰면 itemId가 자동으로 {itemId}에 치환이 되고 남은 status 값은 파라미터로 넘어가게 된다
+    }
+
+    @PostMapping("/add") // 오류 코드와 메시지 처리1
+    public String addItemV5(Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
+
+        itemValidator.validate(item, bindingResult); // 검증 클래스를 따로 만들어 검증 로직을 컨트롤러 코드에서 처리하지 않게함.
 
         //검증에 실패하면 다시 입력 폼으로
         if (bindingResult.hasErrors()) { // 에러에 값이 담겨있으면 검증에 걸린 것
