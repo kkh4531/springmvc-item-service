@@ -7,9 +7,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Range;
+import org.hibernate.validator.constraints.ScriptAssert;
 
 @Getter
 @Setter
+//@ScriptAssert(lang = "javascript", script = "_this.price * this.quantity >= 10000")
 public class Item {
 
     private Long id;
