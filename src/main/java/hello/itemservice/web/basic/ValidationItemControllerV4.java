@@ -2,8 +2,8 @@ package hello.itemservice.web.basic;
 
 import hello.itemservice.domain.item.Item;
 import hello.itemservice.domain.item.ItemRepository;
-import hello.itemservice.domain.item.SaveCheck;
-import hello.itemservice.domain.item.UpdateCheck;
+import hello.itemservice.web.basic.form.ItemSaveForm;
+import hello.itemservice.web.basic.form.ItemUpdateForm;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +85,7 @@ public class ValidationItemControllerV4 {
     }
 
     @PostMapping("/add") // 최종 검증 메소드
-    public String addItem(@Validated(SaveCheck.class) @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
+    public String addItem(@Validated @ModelAttribute("item") ItemSaveForm form, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) { // BindingResult는 ModelAttribute 바로 뒤에 와야 함.
 
         // Bean Validation을 이용할 때 Item 클래스에서 애노테이션을 이용해 검증을 하는데 이때 검증은 무조건 바인딩이 됐다는 전제 하에 검증한다.
         // 그 말은 즉, 애초에 타입 에러로 바인딩이 실패될 때는 Bean Validation이 검증을 하지 못한다.
@@ -93,8 +93,8 @@ public class ValidationItemControllerV4 {
 
         //특정 필드가 아닌 복합 룰 검증
         //객체의 단순 필드 검증이 아닌 복합적인 값을 이용한 검증은에서 ScriptAssert는 제약이 많아서 그냥 코드로 해결하는 게 낫다.
-        if (item.getPrice() != null && item.getQuantity() != null) {
-            int resultPrice = item.getPrice() * item.getQuantity();
+        if (form.getPrice() != null && form.getQuantity() != null) {
+            int resultPrice = form.getPrice() * form.getQuantity();
             if (resultPrice < 10000) {
                 bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
             }
@@ -107,6 +107,7 @@ public class ValidationItemControllerV4 {
         }
 
         //상품 입력 성공
+        Item item = new Item(form.getItemName(), form.getPrice(), form.getQuantity());
         Item saved = itemRepository.save(item);
         redirectAttributes.addAttribute("itemId", saved.getId());
         redirectAttributes.addAttribute("status", true);
@@ -121,10 +122,10 @@ public class ValidationItemControllerV4 {
     }
 
     @PostMapping("/{itemId}/edit")
-    public String editItem(@PathVariable Long itemId, @Validated(UpdateCheck.class) @ModelAttribute Item item, BindingResult bindingResult) {
+    public String editItem(@PathVariable Long itemId, @Validated @ModelAttribute("item") ItemUpdateForm itemUpdateForm, BindingResult bindingResult) {
 
-        if (item.getPrice() != null && item.getQuantity() != null) {
-            int resultPrice = item.getPrice() * item.getQuantity();
+        if (itemUpdateForm.getPrice() != null && itemUpdateForm.getQuantity() != null) {
+            int resultPrice = itemUpdateForm.getPrice() * itemUpdateForm.getQuantity();
             if (resultPrice < 10000) {
                 bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
             }
@@ -134,6 +135,7 @@ public class ValidationItemControllerV4 {
             log.info("errors={}", bindingResult);
             return "validation/v4/editForm";
         }
+        Item item = new Item(itemUpdateForm.getItemName(), itemUpdateForm.getPrice(), itemUpdateForm.getQuantity());
         itemRepository.update(itemId, item);
         return "redirect:/validation/v4/items/{itemId}"; //PathVariable의 itemId 값이 자동으로 {itemId}에 바인딩됨.
     }
